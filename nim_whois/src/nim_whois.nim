@@ -1,34 +1,49 @@
 import system, os, streams, strUtils, json
 import httpclient
 
-let target_ip_file = "./iplist.txt"
+const rdap_domain = "http://rdap.apnic.net/ip/"
+let target_ip_file = "./ip_list_499_1120.txt"
 let client = newHttpClient()
 #let client = newAsyncHttpClient()
 
 type whois = object
 type rdap = object
 
-proc get_info(who: whois, ip: string): string =
-    let ip_file: File = open(target_ip_file, FileMode.fmRead)
-    let ip_lines = newStringStream(ip_file.readAll())
-    for ip in ip_lines.lines():
-        echo ip.whois()
-
-proc get_info(dap: rdap, ip: string): json =
+proc get_info(dap: rdap, ip: string): string =
     try:
-        let rdap_url = "http://rdap.apnic.net/ip/" & ip
+        let rdap_url = rdap_domain & ip
         let content = client.getContent(rdap_url)
-        return %*cotent
+        return content
+    except:
+        discard
+    finally:
+        discard
 
-proc whois(ip: string): string =
+proc get_whois(ip: string): string =
     try:
         let ipstr = "http://rdap.apnic.net/ip/" & ip
         let content = client.getContent(ipstr)
         return content
     except:
-        echo "error"
+        discard
+        #echo "error"
     finally:
-        echo "complete"
+        discard
+        #echo "complete"
 
+proc get_info(who: whois, ip: string): TaintedString =
+    let ip_file: File = open(target_ip_file, FileMode.fmRead)
+    let ip_lines = newStringStream(ip_file.readAll())
+    for ip in ip_lines.lines():
+        echo ip.get_whois()
 
-rdap.get_info("124.110.100.168")
+var dap = rdap()
+let ip_file: File = open(target_ip_file, FileMode.fmRead)
+let ip_lines = newStringStream(ip_file.readAll())
+for ip in ip_lines.lines():
+    #echo ip.get_whois()
+    try:
+        echo dap.get_info(ip)
+    finally:
+        discard
+#echo dap.get_info("124.110.100.168")
